@@ -9,11 +9,16 @@ contract MyToken {
     uint256 public totalSupply;
     mapping(address => uint256) public balanceof;
 
-    constructor(string memory _name, string memory _symbol, uint8 _decimals) {
+    constructor(
+        string memory _name,
+        string memory _symbol,
+        uint8 _decimal,
+        uint256 _amount
+    ) {
         name = _name;
         symbol = _symbol;
-        decimals = _decimals;
-        _mint(1 * 10 ** uint256(decimals), msg.sender); //1MT
+        decimals = _decimal;
+        _mint(_amount * 10 ** uint256(decimals), msg.sender); //1MT
     }
 
     function _mint(uint256 amount, address owner) internal {
@@ -32,4 +37,10 @@ contract MyToken {
     //function name() external view returns (string memory) {
     //    return name;
     //}
+
+    function transfer(uint256 amount, address to) external {
+        require(balanceof[msg.sender] >= amount, "insufficient balance");
+        balanceof[msg.sender] -= amount;
+        balanceof[to] += amount;
+    }
 }
