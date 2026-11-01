@@ -7,6 +7,17 @@
 // - users token management
 // - user --> deposit --> TinyBank --> transfer(user --> TinyBank)
 
+// Reward
+// - reward token : MyToken
+// - reward resources : 1 MT/block minting
+// - reward strategy : staked[user]/totalStaked distribution
+
+// - signer0 block 0 staking
+// - signer1 block 5 staking
+// - 0-- 1-- 2-- 3-- 4-- 5--
+//   |                   |
+// - signer0 10MT        signer1 10MT
+
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
@@ -32,26 +43,29 @@ contract TinyBank {
         stakingToken = _stakingToken;
     }
 
-    //who when
-    function distrubuteReward(address to) internal {
-        uint256 blocks = block.number - lastClaimedBlock[to];
-        uint256 reward = (blocks * rewardPerBlock * staked[to]) / totalStaked;
-        stakingToken.mint(reward, to);
+    //who when?
+    //genesis staking
+    modifier updateReward(address to) {
+        if (staked[to] > 0) {
+            uint256 blocks = block.number - lastClaimedBlock[to];
+            uint256 reward = (blocks * rewardPerBlock * staked[to]) /
+                totalStaked;
+            stakingToken.mint(reward, to);
+        }
         lastClaimedBlock[to] = block.number;
+        _;
     }
 
-    function stake(uint256 _amount) external {
+    function stake(uint256 _amount) external updateReward(msg.sender) {
         require(_amount >= 0, "cannot stake 0 amount");
-        distrubuteReward(msg.sender);
         stakingToken.transferFrom(msg.sender, address(this), _amount);
         staked[msg.sender] += _amount;
         totalStaked += _amount;
         emit Staked(msg.sender, _amount);
     }
 
-    function withdraw(uint256 _amount) external {
+    function withdraw(uint256 _amount) external updateReward(msg.sender) {
         require(staked[msg.sender] >= _amount, "insufficient staked token");
-        distrubuteReward(msg.sender);
         stakingToken.transfer(_amount, msg.sender);
         staked[msg.sender] -= _amount;
         totalStaked -= _amount;
